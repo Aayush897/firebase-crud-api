@@ -12,8 +12,17 @@ const {
      userWithCommonFriends,
      filterUserByAge,
      batchCommit,
+     login,
+     // isAuthenticated,
 } = require('./model');
+
+const {isAuthenticated} = require('./middleware')
+
 const router = express.Router()
+
+router.post('/login',login) 
+
+
 
 //--------------------------creating the user -------------------------
 
@@ -23,19 +32,19 @@ router.post('/createUser/', async(req, res)=>{
 
 //----------------------getting user details--------------------------
 
-router.get('/getUser/:userId', async(req, res)=>{   
+router.get('/getUser/:userId', isAuthenticated , async(req, res)=>{   
      return getUserDetails(req, res);
 })
 
 //---------------deleting the user by unique UserName---------------------
 
-router.delete('/deleteUser/:userId', async (req, res)=>{
+router.delete('/deleteUser/:userId', isAuthenticated, async (req, res)=>{
      return await deleteUserData(req, res);
 })
 
 //------------------updating the user name-------------------
 
-router.post('/:userId/updateUser', async (req, res)=>{
+router.post('/:userId/updateUser', isAuthenticated, async (req, res)=>{
      return await updateUserDetails(req, res);
 })
 
@@ -53,19 +62,19 @@ router.get('/allDocs', async(req, res)=>{
 
 //----------------update the user-------------------------------------
 
-router.post('/:userId/update', async(req, res)=>{
+router.post('/:userId/update', isAuthenticated, async(req, res)=>{
      return await updateDetails(req, res);
 })
 
 //----------------------updating friends------------------------
 
-router.post('/:userId/updateFriends', async(req, res)=>{
+router.post('/:userId/updateFriends', isAuthenticated, async(req, res)=>{
      return await updateFriends(req, res);
 })
 
 //------------------merging additional info----------
 
-router.post('/:userId/mergeDetails', async(req, res)=>{
+router.post('/:userId/mergeDetails', isAuthenticated, async(req, res)=>{
      return await mergeDetails(req, res);
 })
 
@@ -86,6 +95,10 @@ router.post('/userWithCommonFriends', async(req, res)=>{
 router.post('/:userId/batchCommit', async(req, res)=>{
      return await batchCommit(req, res);
 })
+
+//------------------login---------------------------
+
+
 
 
 module.exports = router;

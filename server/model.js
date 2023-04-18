@@ -1,5 +1,8 @@
 const {db} = require('./firebase')
 const firebase = require('firebase-admin');
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
+require('dotenv').config()
 async function createUser(req, res){
      try {
           const userName = req.body.UserId;
@@ -9,23 +12,82 @@ async function createUser(req, res){
                     error : "user name already taken"
                })
           }
-          // const {first, middle, last, born, arr} = req.body;
-          // const newUser = await newDoc.set({
-          //      'UserId' : userName,
-          //      'first': first,
-          //      'middle': middle,
-          //      'last': last,
-          //      'born': born,
-          //      'friends' : arr
-          // });
-          const newUser = await newDoc.set(req.body);
+          console.log("hi")
+          const body = req.body;
+          body['hash'] = await bcrypt.hash(req.body.password, 10);
+          
+          const newUser = await newDoc.set({
+               'UserId' : userName,
+               'password' : body.hash,
+               'first': body.first,
+               'middle': body.middle,
+               'last': body.last,
+               'born': body.born,
+               'friends' : body.arr
+          });
+          req.isAuthenticated = true;
+          console.log("hi")
+          
           return res.status(201).send(newUser);
      } catch (err) {
+          console.log(err);
           return res.status(500).send({
                error : "internal server error"
           })
      }
 }
+
+
+async function isAuthenticated(req, res, next){
+     if(req.isAuthenticated){
+          next()
+     }
+     else{
+        return res.send({
+          error : "unauthorized"
+        })  
+     }
+}
+
+async function login(req, res, next){
+     try {
+          console.log('here')
+          const userName = req.body.userId
+          const newDoc = (await db.collection('my collection').doc(userName).get()).data();
+          console.log(newDoc)
+          if(!newDoc){
+               return res.send({
+                    error : "User not found"
+               });
+          }
+          const userRegistered = await bcrypt.compare(req.body.password, newDoc.password);
+          console.log(userRegistered)
+          if(userRegistered){
+               const token = jwt.sign({
+                    userId : newDoc.UserId,
+               },
+               process.env.SECRET_KEY_FACULTY,
+               {
+               expiresIn : "1h"
+               })
+               req.authenticated = true
+               res.send({
+                    status : "auth successful",
+                    token : token
+               });
+               next();
+          }
+          
+     } catch (error) {
+          console.log(error)
+          return res.send({
+               error : "internal server error"
+          })
+     }
+     
+}
+
+
 
 async function getUserDetails(req, res){
      try {
@@ -247,6 +309,9 @@ async function batchCommit(req, res){
 
 
 
+
+
+
 module.exports = {
      createUser,
      getUserDetails,
@@ -259,4 +324,6 @@ module.exports = {
      userWithCommonFriends,
      filterUserByAge,
      batchCommit,
+     login,
+     isAuthenticated,
 };
